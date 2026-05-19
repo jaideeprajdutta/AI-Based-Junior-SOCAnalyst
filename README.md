@@ -8,8 +8,8 @@ An intelligent security operations center (SOC) assistant that leverages AI to a
 - Automated Incident Response Suggestions
 
 ## Tech Stack
-- **Backend:** Python (FastAPI)
-- **AI Engine:** Google Gemini
+- **Backend:** Python
+- **AI Engine:** GPT 5
 - **Frontend:** React (Optional)
 
 ## Getting Started
