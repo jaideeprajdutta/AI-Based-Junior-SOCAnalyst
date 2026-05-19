@@ -5,6 +5,9 @@ import os
 import uuid
 import requests
 
+from dotenv import load_dotenv
+load_dotenv
+
 from datetime import datetime
 from collections import Counter
 
@@ -23,8 +26,12 @@ ALERT_DIR = "alerts"
 PCAP_FILE = os.path.join(PCAP_DIR, "traffic.pcap")
 CSV_FILE = os.path.join(CSV_DIR, "traffic.csv")
 
-AIRIA_API_URL = "https://api.airia.ai/v2/PipelineExecution/168172e5-0605-4570-9b79-55df61e91b1b"
-AIRIA_API_KEY = "ak-NTE4NDQ0ODcxfDE3NzkxNzIxMjczNjJ8dGktVW05M1JHeGxjaTFQY0dWdUlGSmxaMmx6ZEhKaGRHbHZiaTFCYVhKcFlTQkdjbVZsfDF8MjkyMTY3NTI3MyAg"
+AIRIA_API_URL = os.getenv("AIRIA_API_URL")
+AIRIA_API_KEY = os.getenv("AIRIA_API_KEY")
+
+if not AIRIA_API_URL or not AIRIA_API_KEY:
+    raise Exception("Missing AIRIA API credentials in environment variables")
+
 
 DESTINATION_HOST = "Internal-server"
 DESTINATION_IP = "192.168.0.206"
