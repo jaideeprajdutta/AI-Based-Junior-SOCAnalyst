@@ -10,6 +10,7 @@ load_dotenv()
 
 from datetime import datetime
 from collections import Counter
+from app.utils import is_connected
 
 # ============================================================
 # CONFIGURATION
@@ -241,18 +242,17 @@ def send_to_airia(alert):
 
     print("[+] Sending alert to Airia...")
 
-    response = requests.post(
-        AIRIA_API_URL,
-        headers=headers,
-        json=payload,
-        timeout=120
-    )
-
-    response.raise_for_status()
-
-    print(f"[+] Airia response status: {response.status_code}")
-
     try:
+        response = requests.post(
+            AIRIA_API_URL,
+            headers=headers,
+            json=payload,
+            timeout=120
+        )
+
+        response.raise_for_status()
+
+        print(f"[+] Airia response status: {response.status_code}")
 
         data = response.json()
 
@@ -266,16 +266,18 @@ def send_to_airia(alert):
         print("    Try running: 'ping 8.8.8.8' and 'ping api.airia.ai' to troubleshoot.")
 
     except Exception as e:
-
-        print("\n========== AIRIA RESPONSE ==========\n")
-        print(f"Error processing response: {e}")
-        print(response.text)
+        print(f"\n[!] Error processing Airia response: {e}")
 
 # ============================================================
 # MAIN WORKFLOW
 # ============================================================
 
 def main():
+
+    if not is_connected():
+        print("\n[!] WARNING: No internet connectivity detected.")
+        print("    The system will capture traffic but will fail to call the Airia API.")
+        print("    HINT: Fix your DNS/Internet on Kali before proceeding.\n")
 
     try:
 
