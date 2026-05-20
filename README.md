@@ -14,4 +14,4 @@ An intelligent security operations center (SOC) assistant that leverages AI to a
 
 ## Getting Started
 1. Install dependencies: `pip install -r requirements.txt`
-2. Run the application: `uvicorn main:app --reload`
+2. Run the application: `python3 app/main.py`
