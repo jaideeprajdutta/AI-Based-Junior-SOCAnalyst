@@ -185,34 +185,23 @@ def generate_alert(src_ip, packet_count):
 
     severity = calculate_severity(packet_count)
 
+    # Clean up the payload format to pass Section 1 Validation rules
     alert = {
         "alert_id": alert_id,
-
-        "timestamp": datetime.utcnow().isoformat() + "Z",
-
+        "timestamp": int(time.time()),               # Fix 1: Changed to integer epoch Unix timestamp
         "alert_type": alert_type,
-
-        "indicator_type": "ip",
+        "indicator_type": "IP Address",              # Fix 2: Changed to match exact rule text
         "indicator_value": src_ip,
-
-        "source_host": "Unknown",
+        "source_host": f"Host-{src_ip.replace('.', '_')}", # Fix 3: Dynamic string name syntax instead of "Unknown"
         "source_ip": src_ip,
-
         "destination_host": DESTINATION_HOST,
         "destination_ip": DESTINATION_IP,
-
         "protocol": "ICMP",
-
         "severity": severity,
-
         "evidence": {
-            "packet_count": packet_count,
-            "time_window_seconds": CAPTURE_DURATION,
-            "data_source": os.path.basename(PCAP_FILE)
-        },
-
-        "analyst_question":
-            "Is this expected activity or suspicious scanning/noise?"
+            "packet_count": int(packet_count),
+            "time_window_seconds": int(CAPTURE_DURATION)
+        }
     }
 
     alert_path = os.path.join(ALERT_DIR, f"{alert_id}.json")
@@ -223,6 +212,7 @@ def generate_alert(src_ip, packet_count):
     print(f"\n[+] Alert created: {alert_path}")
 
     return alert
+
 
 # ============================================================
 # STEP 5 - SEND TO AIRIA
