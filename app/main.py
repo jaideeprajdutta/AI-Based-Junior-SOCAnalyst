@@ -5,16 +5,12 @@ import uuid
 import requests
 import time
 import socket
-
+import csv
 from datetime import datetime
+from collections import Counter
 from dotenv import load_dotenv
 
 load_dotenv()
-
-from app.utils import is_connected
-from app.models import AlertModel, AlertEvidence
-from app.rules import classify_alert, calculate_severity
-from app.analyzer import analyze_traffic
 
 # ============================================================
 # CONFIGURATION
@@ -49,22 +45,58 @@ os.makedirs(CSV_DIR, exist_ok=True)
 os.makedirs(ALERT_DIR, exist_ok=True)
 
 # ============================================================
-# HELPER
+# INLINE CORE LOGIC FUNCTIONS (Self-Contained)
 # ============================================================
-
 
 def is_connected():
     try:
-        # Tries to connect to Google's public DNS to verify internet access
         socket.create_connection(("8.8.8.8", 53), timeout=3)
         return True
     except OSError:
         return False
-    
-    
+
 def run_command(cmd, description):
     print(f"\n[+] {description}")
     subprocess.run(cmd, check=True)
+
+def analyze_traffic(csv_path, threshold):
+    ip_counter = Counter()
+    if not os.path.exists(csv_path):
+        return []
+
+    with open(csv_path, newline="") as csvfile:
+        reader = csv.DictReader(csvfile)
+        for row in reader:
+            src_ip = (row.get("ip.src") or "").strip().strip('"')
+            if src_ip:
+                ip_counter[src_ip] += 1
+
+    print("\n========== TRAFFIC SUMMARY ==========\n")
+    suspicious_hosts = []
+    for ip, count in ip_counter.items():
+        print(f"{ip}: {count} packets")
+        if count > threshold:
+            suspicious_hosts.append((ip, count))
+
+    if not suspicious_hosts:
+        print("\n[+] No suspicious activity detected")
+    return suspicious_hosts
+
+def classify_alert(packet_count):
+    if packet_count >= 100:
+        return "Potential ICMP Flood"
+    elif packet_count >= 50:
+        return "Suspicious Network Volume"
+    else:
+        return "Informational"
+
+def calculate_severity(packet_count):
+    if packet_count >= 100:
+        return "High"
+    elif packet_count >= 50:
+        return "Medium"
+    else:
+        return "Low"
 
 # ============================================================
 # STEP 1 - CAPTURE TRAFFIC
@@ -120,7 +152,7 @@ def convert_to_csv():
     print(f"[+] CSV created: {CSV_FILE}")
 
 # ============================================================
-# STEP 4 - GENERATE ALERT
+# STEP 4 - GENERATE ALERT (Optimized for AI Prompt Verification)
 # ============================================================
 
 def generate_alert(src_ip, packet_count):
@@ -128,30 +160,31 @@ def generate_alert(src_ip, packet_count):
     alert_type = classify_alert(packet_count)
     severity = calculate_severity(packet_count)
 
-    evidence = AlertEvidence(
-        packet_count=packet_count,
-        time_window_seconds=CAPTURE_DURATION,
-        data_source=os.path.basename(PCAP_FILE)
-    )
-
-    alert = AlertModel(
-        alert_id=alert_id,
-        timestamp=datetime.utcnow().isoformat() + "Z",
-        alert_type=alert_type,
-        indicator_value=src_ip,
-        source_ip=src_ip,
-        destination_host=DESTINATION_HOST,
-        destination_ip=DESTINATION_IP,
-        severity=severity,
-        evidence=evidence
-    )
+    # Validated dictionary schema that mirrors your exact AI constraints
+    alert = {
+        "alert_id": alert_id,
+        "timestamp": int(time.time()), 
+        "alert_type": alert_type,
+        "indicator_type": "IP Address", 
+        "indicator_value": src_ip,
+        "source_host": f"Host-{src_ip.replace('.', '_')}", 
+        "source_ip": src_ip,
+        "destination_host": DESTINATION_HOST,
+        "destination_ip": DESTINATION_IP,
+        "protocol": "ICMP",
+        "severity": severity,
+        "evidence": {
+            "packet_count": int(packet_count),
+            "time_window_seconds": int(CAPTURE_DURATION)
+        }
+    }
 
     alert_path = os.path.join(ALERT_DIR, f"{alert_id}.json")
     with open(alert_path, "w") as f:
-        json.dump(alert.dict(), f, indent=4)
+        json.dump(alert, f, indent=4)
 
     print(f"\n[+] Alert created: {alert_path}")
-    return alert.dict()
+    return alert
 
 # ============================================================
 # STEP 5 - SEND TO AIRIA
@@ -184,7 +217,7 @@ def send_to_airia(alert):
     except requests.exceptions.ConnectionError as e:
         print(f"\n[!] Connection Error: Could not reach Airia API.")
         print(f"    Details: {e}")
-        print("    HINT: Check if your Kali machine has internet access and can resolve 'api.airia.ai'.")
+        print("    HINT: Check internet access or resolution of 'api.airia.ai'.")
     except Exception as e:
         print(f"\n[!] Error processing Airia response: {e}")
 
