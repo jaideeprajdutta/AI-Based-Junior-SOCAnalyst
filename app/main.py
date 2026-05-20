@@ -27,8 +27,8 @@ ALERT_DIR = "alerts"
 PCAP_FILE = os.path.join(PCAP_DIR, "traffic.pcap")
 CSV_FILE = os.path.join(CSV_DIR, "traffic.csv")
 
-AIRIA_API_URL = os.getenv("AIRIA_API_URL")
-AIRIA_API_KEY = os.getenv("AIRIA_API_KEY")
+AIRIA_API_URL = "https://api.airia.ai/v2/PipelineExecution/168172e5-0605-4570-9b79-55df61e91b1b"
+AIRIA_API_KEY = "ak-NTE4NDQ0ODcxfDE3NzkxNzIxMjczNjJ8dGktVW05M1JHeGxjaTFQY0dWdUlGSmxaMmx6ZEhKaGRHbHZiaTFCYVhKcFlTQkdjbVZsfDF8MjkyMTY3NTI3MyAg"
 
 if not AIRIA_API_URL or not AIRIA_API_KEY:
     raise Exception("Missing AIRIA API credentials in environment variables")
@@ -201,7 +201,7 @@ def send_to_airia(alert):
         "asyncOutput": False
     }
 
-    print("[+] Sending alert to Airia...")
+    print("[+] Offloading alert payload to Airia Core...")
     try:
         response = requests.post(
             AIRIA_API_URL,
@@ -210,17 +210,43 @@ def send_to_airia(alert):
             timeout=120
         )
         response.raise_for_status()
-        print(f"[+] Airia response status: {response.status_code}")
-        data = response.json()
-        print("\n========== AIRIA RESPONSE ==========\n")
-        print(json.dumps(data, indent=2))
-    except requests.exceptions.ConnectionError as e:
-        print(f"\n[!] Connection Error: Could not reach Airia API.")
-        print(f"    Details: {e}")
-        print("    HINT: Check internet access or resolution of 'api.airia.ai'.")
-    except Exception as e:
-        print(f"\n[!] Error processing Airia response: {e}")
+        
+        raw_data = response.json()
+        
+        # Unpack the nested JSON payload
+        nested_result_str = raw_data.get("result", "{}")
+        analysis = json.loads(nested_result_str)
 
+        print("\n" + "==================================================")
+        print("          AIRIA THREAT INTELLIGENCE REPORT        ")
+        print("==================================================")
+        print(f"  > ALERT ID       : {analysis.get('alert_id')}")
+        print(f"  > CLASSIFICATION : {analysis.get('threat_classification')}")
+        print(f"  > RISK LEVEL     : {analysis.get('risk_level')} ({analysis.get('risk_score')}/100)")
+        print(f"  > CONFIDENCE     : {analysis.get('confidence_level')}")
+        
+        mitre = analysis.get("mitre_mapping", {})
+        print(f"  > MITRE TACTIC   : {mitre.get('tactic')}")
+        print(f"  > MITRE TECHNIQUE: {mitre.get('technique_id')} - {mitre.get('technique_name')}")
+        
+        print("\n--- EXECUTIVE SUMMARY ---")
+        print(analysis.get("executive_summary"))
+        
+        print("\n--- ANALYST REASONING ---")
+        print(analysis.get("analysis_reasoning"))
+        
+        print("\n--- MITIGATION STRATEGY ---")
+        for action in analysis.get("recommended_actions", []):
+            print(f"  [-] {action}")
+            
+        print("==================================================\n")
+
+    except requests.exceptions.ConnectionError as e:
+        print(f"\n[!] Connection Error: API endpoint unreachable.")
+    except Exception as e:
+        print(f"\n[!] Error decoding pipeline response: {e}")
+
+        
 # ============================================================
 # MAIN WORKFLOW
 # ============================================================
