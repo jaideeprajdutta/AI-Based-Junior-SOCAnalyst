@@ -4,13 +4,13 @@ import json
 import os
 import uuid
 import requests
+import time
 
 from dotenv import load_dotenv
 load_dotenv()
 
 from datetime import datetime
 from collections import Counter
-from app.utils import is_connected
 
 # ============================================================
 # CONFIGURATION
