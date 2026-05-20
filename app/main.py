@@ -259,9 +259,16 @@ def send_to_airia(alert):
         print("\n========== AIRIA RESPONSE ==========\n")
         print(json.dumps(data, indent=2))
 
-    except Exception:
+    except requests.exceptions.ConnectionError as e:
+        print(f"\n[!] Connection Error: Could not reach Airia API.")
+        print(f"    Details: {e}")
+        print("    HINT: Check if your Kali machine has internet access and can resolve 'api.airia.ai'.")
+        print("    Try running: 'ping 8.8.8.8' and 'ping api.airia.ai' to troubleshoot.")
+
+    except Exception as e:
 
         print("\n========== AIRIA RESPONSE ==========\n")
+        print(f"Error processing response: {e}")
         print(response.text)
 
 # ============================================================
