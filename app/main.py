@@ -15,9 +15,9 @@ from collections import Counter
 # CONFIGURATION
 # ============================================================
 
-INTERFACE = "eth0"
-CAPTURE_DURATION = 100
-THRESHOLD = 40
+INTERFACE = os.getenv("SOC_INTERFACE", "eth0")
+CAPTURE_DURATION = int(os.getenv("SOC_CAPTURE_DURATION", "100"))
+THRESHOLD = int(os.getenv("SOC_THRESHOLD", "40"))
 
 PCAP_DIR = "pcaps"
 CSV_DIR = "csv"
@@ -33,8 +33,8 @@ if not AIRIA_API_URL or not AIRIA_API_KEY:
     raise Exception("Missing AIRIA API credentials in environment variables")
 
 
-DESTINATION_HOST = "Internal-server"
-DESTINATION_IP = "192.168.0.206"
+DESTINATION_HOST = os.getenv("SOC_DESTINATION_HOST", "Internal-server")
+DESTINATION_IP = os.getenv("SOC_DESTINATION_IP", "192.168.0.206")
 
 # ============================================================
 # DIRECTORY SETUP
