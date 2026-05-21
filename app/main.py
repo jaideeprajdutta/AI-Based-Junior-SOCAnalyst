@@ -82,14 +82,19 @@ def analyze_traffic(csv_path, threshold):
     if not os.path.exists(csv_path):
         return []
 
-    with open(csv_path, newline="") as csvfile:
-        reader = csv.DictReader(csvfile)
-        for row in reader:
-            src_ip = (row.get("ip.src") or "").strip().strip('"')
-            if src_ip:
-                ip_counter[src_ip] += 1
+    # Using a buffer/generator pattern for efficient line-by-line processing
+    try:
+        with open(csv_path, newline="") as csvfile:
+            reader = csv.DictReader(csvfile)
+            for row in reader:
+                src_ip = (row.get("ip.src") or "").strip().strip('"')
+                if src_ip:
+                    ip_counter[src_ip] += 1
+    except Exception as e:
+        logger.error(f"Error processing CSV buffer: {e}")
+        return []
 
-    print("\n========== TRAFFIC SUMMARY ==========\n")
+    logger.info("========== TRAFFIC SUMMARY ==========")
     suspicious_hosts = []
     for ip, count in ip_counter.items():
         print(f"{ip}: {count} packets")
