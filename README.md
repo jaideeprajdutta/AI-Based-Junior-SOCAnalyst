@@ -52,5 +52,8 @@ This tool monitors local network traffic for potential threats (specifically foc
    - The alert is then sent to the AI engine for detailed analysis.
    - Analysis reports are printed to the console and stored locally.
 
+## Contributors
+We welcome contributions from the community! Please see [CONTRIBUTING.md](CONTRIBUTING.md) for details on our code of conduct and the process for submitting pull requests.
+
 ## License
-MIT License
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details. (Note: Ensure a LICENSE file is present in the root).
