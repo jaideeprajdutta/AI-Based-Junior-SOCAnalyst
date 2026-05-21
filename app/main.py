@@ -17,8 +17,8 @@ load_dotenv()
 # ============================================================
 
 INTERFACE = os.getenv("SOC_INTERFACE", "eth0")
-CAPTURE_DURATION = int(os.getenv("SOC_CAPTURE_DURATION", "100"))
-THRESHOLD = int(os.getenv("SOC_THRESHOLD", "40"))
+CAPTURE_DURATION = int(os.getenv("SOC_CAPTURE_DURATION", "60"))
+THRESHOLD = int(os.getenv("SOC_THRESHOLD", "10"))
 
 PCAP_DIR = "pcaps"
 CSV_DIR = "csv"
@@ -27,14 +27,18 @@ ALERT_DIR = "alerts"
 PCAP_FILE = os.path.join(PCAP_DIR, "traffic.pcap")
 CSV_FILE = os.path.join(CSV_DIR, "traffic.csv")
 
-AIRIA_API_URL = "https://api.airia.ai/v2/PipelineExecution/168172e5-0605-4570-9b79-55df61e91b1b"
-AIRIA_API_KEY = "ak-NTE4NDQ0ODcxfDE3NzkxNzIxMjczNjJ8dGktVW05M1JHeGxjaTFQY0dWdUlGSmxaMmx6ZEhKaGRHbHZiaTFCYVhKcFlTQkdjbVZsfDF8MjkyMTY3NTI3MyAg"
+# Placeholder for Public Release
+AIRIA_API_URL = os.getenv("AIRIA_API_URL", "https://api.airia.ai/v2/PipelineExecution/YOUR_PIPELINE_ID")
+AIRIA_API_KEY = os.getenv("AIRIA_API_KEY", "YOUR_AIRIA_API_KEY")
 
-if not AIRIA_API_URL or not AIRIA_API_KEY:
-    raise Exception("Missing AIRIA API credentials in environment variables")
+if not AIRIA_API_URL or "YOUR_PIPELINE_ID" in AIRIA_API_URL:
+    print("[!] Warning: AIRIA_API_URL is not configured.")
 
-DESTINATION_HOST = os.getenv("SOC_DESTINATION_HOST", "Internal-server")
-DESTINATION_IP = os.getenv("SOC_DESTINATION_IP", "192.168.0.206")
+if not AIRIA_API_KEY or AIRIA_API_KEY == "YOUR_AIRIA_API_KEY":
+    print("[!] Warning: AIRIA_API_KEY is not configured.")
+
+DESTINATION_HOST = os.getenv("SOC_DESTINATION_HOST", "Internal-Server")
+DESTINATION_IP = os.getenv("SOC_DESTINATION_IP", "192.168.1.X")
 
 # ============================================================
 # DIRECTORY SETUP
@@ -45,7 +49,7 @@ os.makedirs(CSV_DIR, exist_ok=True)
 os.makedirs(ALERT_DIR, exist_ok=True)
 
 # ============================================================
-# INLINE CORE LOGIC FUNCTIONS (Self-Contained)
+# CORE LOGIC FUNCTIONS
 # ============================================================
 
 def is_connected():
@@ -84,9 +88,9 @@ def analyze_traffic(csv_path, threshold):
 
 def classify_alert(packet_count):
     if packet_count >= 100:
-        return "Potential ICMP Flood"
+        return "Potential Denial of Service (DoS)"
     elif packet_count >= 50:
-        return "Suspicious Network Volume"
+        return "Suspicious Traffic Volume"
     else:
         return "Informational"
 
@@ -99,7 +103,7 @@ def calculate_severity(packet_count):
         return "Low"
 
 # ============================================================
-# STEP 1 - CAPTURE TRAFFIC
+# WORKFLOW STEPS
 # ============================================================
 
 def capture_traffic():
@@ -124,10 +128,6 @@ def capture_traffic():
 
     print(f"[+] Capture saved: {PCAP_FILE}")
 
-# ============================================================
-# STEP 2 - CONVERT PCAP TO CSV
-# ============================================================
-
 def convert_to_csv():
     if os.path.exists(CSV_FILE):
         os.remove(CSV_FILE)
@@ -151,16 +151,11 @@ def convert_to_csv():
 
     print(f"[+] CSV created: {CSV_FILE}")
 
-# ============================================================
-# STEP 4 - GENERATE ALERT (Optimized for AI Prompt Verification)
-# ============================================================
-
 def generate_alert(src_ip, packet_count):
     alert_id = f"SOC-{uuid.uuid4().hex[:8].upper()}"
     alert_type = classify_alert(packet_count)
     severity = calculate_severity(packet_count)
 
-    # Validated dictionary schema that mirrors your exact AI constraints
     alert = {
         "alert_id": alert_id,
         "timestamp": int(time.time()), 
@@ -186,11 +181,11 @@ def generate_alert(src_ip, packet_count):
     print(f"\n[+] Alert created: {alert_path}")
     return alert
 
-# ============================================================
-# STEP 5 - SEND TO AIRIA
-# ============================================================
-
 def send_to_airia(alert):
+    if "YOUR_AIRIA_API_KEY" in AIRIA_API_KEY:
+        print("[!] Skipping AIRIA API call: API Key not configured.")
+        return
+
     headers = {
         "Content-Type": "application/json",
         "X-API-KEY": AIRIA_API_KEY
@@ -201,7 +196,7 @@ def send_to_airia(alert):
         "asyncOutput": False
     }
 
-    print("[+] Offloading alert payload to Airia Core...")
+    print("[+] Offloading alert payload to AI Core for analysis...")
     try:
         response = requests.post(
             AIRIA_API_URL,
@@ -211,45 +206,17 @@ def send_to_airia(alert):
         )
         response.raise_for_status()
         
-        raw_data = response.json()
+        analysis = response.json()
         
-        # Unpack the nested JSON payload
-        nested_result_str = raw_data.get("result", "{}")
-        analysis = json.loads(nested_result_str)
+        # Note: Analysis structure depends on your specific AIRIA pipeline configuration
+        print("\n" + "="*50)
+        print("          AI THREAT INTELLIGENCE REPORT        ")
+        print("="*50)
+        print(f"Analysis Result: {json.dumps(analysis, indent=2)}")
+        print("="*50 + "\n")
 
-        print("\n" + "==================================================")
-        print("          AIRIA THREAT INTELLIGENCE REPORT        ")
-        print("==================================================")
-        print(f"  > ALERT ID       : {analysis.get('alert_id')}")
-        print(f"  > CLASSIFICATION : {analysis.get('threat_classification')}")
-        print(f"  > RISK LEVEL     : {analysis.get('risk_level')} ({analysis.get('risk_score')}/100)")
-        print(f"  > CONFIDENCE     : {analysis.get('confidence_level')}")
-        
-        mitre = analysis.get("mitre_mapping", {})
-        print(f"  > MITRE TACTIC   : {mitre.get('tactic')}")
-        print(f"  > MITRE TECHNIQUE: {mitre.get('technique_id')} - {mitre.get('technique_name')}")
-        
-        print("\n--- EXECUTIVE SUMMARY ---")
-        print(analysis.get("executive_summary"))
-        
-        print("\n--- ANALYST REASONING ---")
-        print(analysis.get("analysis_reasoning"))
-        
-        print("\n--- MITIGATION STRATEGY ---")
-        for action in analysis.get("recommended_actions", []):
-            print(f"  [-] {action}")
-            
-        print("==================================================\n")
-
-    except requests.exceptions.ConnectionError as e:
-        print(f"\n[!] Connection Error: API endpoint unreachable.")
     except Exception as e:
-        print(f"\n[!] Error decoding pipeline response: {e}")
-
-        
-# ============================================================
-# MAIN WORKFLOW
-# ============================================================
+        print(f"\n[!] Error during AI analysis: {e}")
 
 def process_cycle():
     capture_traffic()
@@ -268,29 +235,27 @@ def process_cycle():
 def main():
     if not is_connected():
         print("\n[!] WARNING: No internet connectivity detected.")
-        print("    The system will capture traffic but will fail to call the Airia API.")
+        print("    The system will capture traffic but will fail to call the AI API.")
 
-    print("\n[***] SOC ANALYST SERVER STARTED [***]")
-    print(f"[*] Monitoring {INTERFACE} for ICMP pings to {DESTINATION_IP}")
-    print(f"[*] Threshold: {THRESHOLD} packets | Cycle: {CAPTURE_DURATION}s")
+    print("\n" + "="*40)
+    print("  LOCAL NETWORK MONITORING SOC STARTED  ")
+    print("="*40)
+    print(f"[*] Monitoring: {INTERFACE}")
+    print(f"[*] Target: {DESTINATION_IP}")
+    print(f"[*] Threshold: {THRESHOLD} packets / {CAPTURE_DURATION}s")
 
     while True:
         try:
-            print(f"\n--- Starting new capture cycle at {datetime.now().strftime('%H:%M:%S')} ---")
+            print(f"\n--- Starting capture cycle: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')} ---")
             process_cycle()
-            print("\n[+] Cycle completed. Sleeping for 5s...")
-            time.sleep(5)
+            print("\n[+] Cycle completed. Waiting for next interval...")
+            time.sleep(10)
         except KeyboardInterrupt:
-            print("\n[!] SOC Server stopped by user.")
+            print("\n[!] Service stopped by user.")
             break
         except Exception as e:
-            print(f"\n[!] Cycle Error: {e}")
-            print("[*] Retrying in 10s...")
+            print(f"\n[!] Error: {e}")
             time.sleep(10)
-
-# ============================================================
-# ENTRY POINT
-# ============================================================
 
 if __name__ == "__main__":
     main()
