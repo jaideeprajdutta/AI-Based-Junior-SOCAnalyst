@@ -1,7 +1,28 @@
-.env
+# Byte-compiled / optimized / DLL files
 __pycache__/
-*.pyc
+*.py[cod]
+*$py.class
+
+# OS generated files
+.DS_Store
+Thumbs.db
+
+# Environment variables
+.env
+.venv
+env/
+venv/
+ENV/
+
+# Local traffic captures and logs
 pcaps/
 csv/
 alerts/
-kali_main/
+*.pcap
+*.csv
+*.log
+
+# Distribution / packaging
+dist/
+build/
+*.egg-info/
