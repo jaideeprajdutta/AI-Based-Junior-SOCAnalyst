@@ -8,7 +8,21 @@ import socket
 import csv
 from datetime import datetime
 from collections import Counter
+import logging
 from dotenv import load_dotenv
+
+# ============================================================
+# LOGGING CONFIGURATION
+# ============================================================
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s [%(levelname)s] %(message)s",
+    handlers=[
+        logging.StreamHandler(),
+        logging.FileHandler("soc_monitor.log")
+    ]
+)
+logger = logging.getLogger(__name__)
 
 load_dotenv()
 
