@@ -200,42 +200,7 @@ def generate_alert(src_ip, packet_count):
     print(f"\n[+] Alert created: {alert_path}")
     return alert
 
-def send_to_airia(alert):
-    if "YOUR_AIRIA_API_KEY" in AIRIA_API_KEY:
-        print("[!] Skipping AIRIA API call: API Key not configured.")
-        return
-
-    headers = {
-        "Content-Type": "application/json",
-        "X-API-KEY": AIRIA_API_KEY
-    }
-
-    payload = {
-        "userInput": json.dumps(alert),
-        "asyncOutput": False
-    }
-
-    print("[+] Offloading alert payload to AI Core for analysis...")
-    try:
-        response = requests.post(
-            AIRIA_API_URL,
-            headers=headers,
-            json=payload,
-            timeout=120
-        )
-        response.raise_for_status()
-        
-        analysis = response.json()
-        
-        # Note: Analysis structure depends on your specific AIRIA pipeline configuration
-        print("\n" + "="*50)
-        print("          AI THREAT INTELLIGENCE REPORT        ")
-        print("="*50)
-        print(f"Analysis Result: {json.dumps(analysis, indent=2)}")
-        print("="*50 + "\n")
-
-    except Exception as e:
-        print(f"\n[!] Error during AI analysis: {e}")
+from app.utils import send_to_airia
 
 def process_cycle():
     capture_traffic()
@@ -249,7 +214,7 @@ def process_cycle():
     print(f"\n[+] {len(suspicious_hosts)} suspicious host(s) detected")
     for ip, count in suspicious_hosts:
         alert = generate_alert(ip, count)
-        send_to_airia(alert)
+        send_to_airia(alert, AIRIA_API_URL, AIRIA_API_KEY)
 
 def check_tshark():
     try:

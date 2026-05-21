@@ -1,12 +1,41 @@
-import socket
+import json
+import logging
+import requests
 
-def is_connected(host="8.8.8.8", port=53, timeout=3):
+logger = logging.getLogger(__name__)
+
+def send_to_airia(alert, api_url, api_key):
     """
-    Check if the system has internet connectivity by attempting to connect to a DNS server.
+    Offloads the alert payload to the AIRIA AI Core for threat analysis.
     """
+    if "YOUR_AIRIA_API_KEY" in api_key or not api_key:
+        logger.warning("Skipping AIRIA API call: API Key not configured.")
+        return None
+
+    headers = {
+        "Content-Type": "application/json",
+        "X-API-KEY": api_key
+    }
+
+    payload = {
+        "userInput": json.dumps(alert),
+        "asyncOutput": False
+    }
+
+    logger.info(f"Sending alert {alert.get('alert_id')} to AI Core...")
     try:
-        socket.setdefaulttimeout(timeout)
-        socket.socket(socket.AF_INET, socket.SOCK_STREAM).connect((host, port))
-        return True
-    except socket.error:
-        return False
+        response = requests.post(
+            api_url,
+            headers=headers,
+            json=payload,
+            timeout=120
+        )
+        response.raise_for_status()
+        
+        analysis = response.json()
+        logger.info("AI analysis received successfully.")
+        return analysis
+
+    except Exception as e:
+        logger.error(f"Error during AI analysis: {e}")
+        return None
