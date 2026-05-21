@@ -1,6 +1,2 @@
-fastapi
-uvicorn
-python-dotenv
-google-generativeai
-pydantic
-requests
+requests==2.32.3
+python-dotenv==1.0.1
