@@ -246,7 +246,15 @@ def process_cycle():
         alert = generate_alert(ip, count)
         send_to_airia(alert)
 
+def check_tshark():
+    try:
+        subprocess.run(["tshark", "-v"], capture_output=True, check=True)
+    except (subprocess.CalledProcessError, FileNotFoundError):
+        logger.error("tshark is not installed or not in PATH. Please install Wireshark/tshark.")
+        exit(1)
+
 def main():
+    check_tshark()
     if not is_connected():
         print("\n[!] WARNING: No internet connectivity detected.")
         print("    The system will capture traffic but will fail to call the AI API.")
