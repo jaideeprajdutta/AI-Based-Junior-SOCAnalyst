@@ -258,7 +258,18 @@ def check_tshark():
         logger.error("tshark is not installed or not in PATH. Please install Wireshark/tshark.")
         exit(1)
 
+def validate_config():
+    global THRESHOLD
+    try:
+        THRESHOLD = int(os.getenv("SOC_THRESHOLD", "10"))
+        if THRESHOLD <= 0:
+            raise ValueError
+    except ValueError:
+        logger.error("Invalid SOC_THRESHOLD. Must be a positive integer. Defaulting to 10.")
+        THRESHOLD = 10
+
 def main():
+    validate_config()
     check_tshark()
     if not is_connected():
         print("\n[!] WARNING: No internet connectivity detected.")
