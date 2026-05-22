@@ -167,7 +167,6 @@ def convert_to_csv():
 
     with open(CSV_FILE, "w", newline="") as outfile:
         subprocess.run(convert_cmd, stdout=outfile, check=True)
-
     print(f"[+] CSV created: {CSV_FILE}")
 
 def generate_alert(src_ip, packet_count):
